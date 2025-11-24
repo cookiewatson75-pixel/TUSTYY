@@ -1,0 +1,503 @@
+CREATE JAVA ANT - JAVA APPLICATION THEN NAME IT EnrollmentSystem AND REMOVE THE CHECK AT THE BOTTOM, AFTER THAT RIGHT CLICK THE SOURCE PACKAGE OF EnrollmentSystem CLICK "NEW" THEN CLICK "JAVA PACKAGE" AND NAME IT 
+enrollment AFTER THAT, RIGHT CLICK THE enrollment PACKAGE THEN CLICK "NEW" AND CLICK "JAVA CLASS" THEN NAME IT "Student" THEN AFTER THAT JUST REPEAT THE PROCESS UNTIL YOU REACH "Main" PASTE THIS CODE OF EACH OF 
+THEM MAKE SURE TO FOLLOW IT FROM 1-6 ACCORDINGLY.
+
+
+
+1. (Student.java)
+
+package enrollment;
+
+
+import java.io.Serializable;
+
+
+public class Student implements Serializable {
+private String id;
+private String name;
+private String course;
+
+
+public Student(String id, String name, String course) {
+this.id = id;
+this.name = name;
+this.course = course;
+}
+
+
+public String getId() { return id; }
+public void setId(String id) { this.id = id; }
+
+
+public String getName() { return name; }
+public void setName(String name) { this.name = name; }
+
+
+public String getCourse() { return course; }
+public void setCourse(String course) { this.course = course; }
+
+
+@Override
+public String toString() {
+return id + " | " + name + " | " + course;
+}
+}
+
+
+
+
+2. (Course.java)
+
+package enrollment;
+
+
+public enum Course {
+BSIT("BSIT"),
+BSCS("BSCS"),
+BSED("BSED"),
+BSHM("BSHM"),
+BSBA("BSBA"),
+OTHERS("OTHERS");
+
+
+private final String label;
+Course(String label) { this.label = label; }
+@Override
+public String toString() { return label; }
+}
+
+
+
+3.(DataManager.java)
+
+package enrollment;
+
+
+
+
+import java.io.*;
+import java.util.*;
+
+
+public class DataManager {
+private static final String FILENAME = "students.txt"; 
+
+
+
+public static List<Student> load() {
+List<Student> list = new ArrayList<>();
+File f = new File(System.getProperty("user.dir"), FILENAME);
+if (!f.exists()) return list;
+
+
+try (BufferedReader br = new BufferedReader(new FileReader(f))) {
+String line;
+while ((line = br.readLine()) != null) {
+
+String[] parts = line.split("\\|", -1);
+if (parts.length >= 3) {
+String id = parts[0].trim();
+String name = parts[1].trim();
+String course = parts[2].trim();
+list.add(new Student(id, name, course));
+}
+}
+} catch (IOException e) {
+e.printStackTrace();
+}
+return list;
+}
+
+
+public static void save(List<Student> list) {
+File f = new File(System.getProperty("user.dir"), FILENAME);
+try (BufferedWriter bw = new BufferedWriter(new FileWriter(f))) {
+for (Student s : list) {
+bw.write(s.getId() + "|" + s.getName() + "|" + s.getCourse());
+bw.newLine();
+}
+} catch (IOException e) {
+e.printStackTrace();
+}
+}
+}
+
+
+
+4. (EnrollmentGUI.java)
+
+package enrollment;
+
+
+
+import javax.swing.*;
+import javax.swing.event.ListSelectionEvent;
+import javax.swing.event.ListSelectionListener;
+import java.awt.*;
+import java.awt.event.*;
+import java.util.*;
+
+
+public class EnrollmentGUI extends JFrame {
+private JTextField idField, nameField, searchField;
+private JComboBox<Course> courseCombo;
+private JButton enrollBtn, editBtn, deleteBtn, saveBtn, loadBtn, clearBtn, searchBtn;
+private DefaultListModel<String> listModel;
+private JList<String> displayList;
+
+
+private java.util.List<Student> students = new ArrayList<>();
+
+public EnrollmentGUI() {
+setTitle("Enrollment System");
+setSize(700, 520);
+setLocationRelativeTo(null);
+setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+setLayout(new BorderLayout(8,8));
+
+
+
+JPanel form = new JPanel(new GridLayout(4,2,8,8));
+form.setBorder(BorderFactory.createTitledBorder("Student Information"));
+form.setPreferredSize(new Dimension(320, 180));
+
+
+form.add(new JLabel("Student ID:"));
+idField = new JTextField();
+form.add(idField);
+
+
+form.add(new JLabel("Full Name:"));
+nameField = new JTextField();
+form.add(nameField);
+
+
+form.add(new JLabel("Course:"));
+courseCombo = new JComboBox<>(Course.values());
+form.add(courseCombo);
+
+
+form.add(new JLabel("Search (ID or Name):"));
+searchField = new JTextField();
+form.add(searchField);
+
+
+add(form, BorderLayout.WEST);
+
+
+
+JPanel right = new JPanel(new BorderLayout(6,6));
+
+
+
+JPanel buttons = new JPanel(new GridLayout(2,3,8,8));
+buttons.setBorder(BorderFactory.createTitledBorder("Actions"));
+
+
+enrollBtn = new JButton("Enroll");
+editBtn = new JButton("Edit");
+deleteBtn = new JButton("Delete");
+saveBtn = new JButton("Save to File");
+loadBtn = new JButton("Load from File");
+clearBtn = new JButton("Clear Fields");
+
+
+buttons.add(enrollBtn);
+buttons.add(editBtn);
+buttons.add(deleteBtn);
+buttons.add(saveBtn);
+buttons.add(loadBtn);
+buttons.add(clearBtn);
+
+
+
+right.add(buttons, BorderLayout.NORTH);
+
+
+
+listModel = new DefaultListModel<>();
+displayList = new JList<>(listModel);
+displayList.setSelectionMode(ListSelectionModel.SINGLE_SELECTION);
+JScrollPane sp = new JScrollPane(displayList);
+sp.setBorder(BorderFactory.createTitledBorder("Enrolled Students"));
+right.add(sp, BorderLayout.CENTER);
+
+
+
+JPanel bottom = new JPanel(new FlowLayout(FlowLayout.LEFT));
+searchBtn = new JButton("Search");
+bottom.add(searchBtn);
+right.add(bottom, BorderLayout.SOUTH);
+
+
+add(right, BorderLayout.CENTER);
+
+
+
+students = DataManager.load();
+refreshList();
+
+enrollBtn.addActionListener(e -> enrollStudent());
+saveBtn.addActionListener(e -> saveToFile());
+loadBtn.addActionListener(e -> loadFromFile());
+clearBtn.addActionListener(e -> clearFields());
+deleteBtn.addActionListener(e -> deleteStudent());
+editBtn.addActionListener(e -> editStudent());
+searchBtn.addActionListener(e -> searchStudents());
+
+
+displayList.addListSelectionListener(new ListSelectionListener() {
+public void valueChanged(ListSelectionEvent e) {
+if (!e.getValueIsAdjusting()) {
+int idx = displayList.getSelectedIndex();
+if (idx >= 0 && idx < students.size()) {
+Student s = students.get(idx);
+idField.setText(s.getId());
+nameField.setText(s.getName());
+courseCombo.setSelectedItem(parseCourse(s.getCourse()));
+}
+}
+}
+});
+
+displayList.addMouseListener(new MouseAdapter() {
+public void mouseClicked(MouseEvent evt) {
+if (evt.getClickCount() == 2) {
+editStudent();
+}
+}
+});
+}
+
+
+private Course parseCourse(String label) {
+for (Course c : Course.values()) if (c.toString().equals(label)) return c;
+return Course.OTHERS;
+}
+
+
+private void enrollStudent() {
+String id = idField.getText().trim();
+String name = nameField.getText().trim();
+String course = ((Course)courseCombo.getSelectedItem()).toString();
+
+
+if (id.isEmpty() || name.isEmpty()) {
+JOptionPane.showMessageDialog(this, "Please fill ID and Name", "Validation", JOptionPane.WARNING_MESSAGE);
+return;
+}
+
+for (Student s : students) {
+if (s.getId().equals(id)) {
+JOptionPane.showMessageDialog(this, "ID already exists. Use Edit to modify.", "Duplicate ID", JOptionPane.WARNING_MESSAGE);
+return;
+}
+}
+
+
+students.add(new Student(id, name, course));
+refreshList();
+clearFields();
+JOptionPane.showMessageDialog(this, "Student enrolled successfully.");
+}
+
+
+private void editStudent() {
+int idx = displayList.getSelectedIndex();
+if (idx < 0) {
+JOptionPane.showMessageDialog(this, "Select a student to edit.");
+return;
+}
+
+
+String id = idField.getText().trim();
+String name = nameField.getText().trim();
+String course = ((Course)courseCombo.getSelectedItem()).toString();
+
+
+if (id.isEmpty() || name.isEmpty()) {
+JOptionPane.showMessageDialog(this, "Please fill ID and Name", "Validation", JOptionPane.WARNING_MESSAGE);
+return;
+}
+
+int opt = JOptionPane.showConfirmDialog(this, "Save changes to this student?", "Confirm Edit", JOptionPane.YES_NO_OPTION);
+if (opt != JOptionPane.YES_OPTION) return;
+
+
+Student s = students.get(idx);
+
+if (!s.getId().equals(id)) {
+for (Student other : students) if (other.getId().equals(id)) {
+JOptionPane.showMessageDialog(this, "Another student already uses this ID.", "Duplicate ID", JOptionPane.ERROR_MESSAGE);
+return;
+}
+}
+
+s.setId(id);
+s.setName(name);
+s.setCourse(course);
+refreshList();
+JOptionPane.showMessageDialog(this, "Student updated.");
+}
+
+
+private void deleteStudent() {
+int idx = displayList.getSelectedIndex();
+if (idx < 0) {
+JOptionPane.showMessageDialog(this, "Select a student to delete.");
+return;
+}
+
+
+int opt = JOptionPane.showConfirmDialog(this, "Are you sure you want to delete selected student?", "Confirm Delete", JOptionPane.YES_NO_OPTION);
+if (opt != JOptionPane.YES_OPTION) return;
+
+
+students.remove(idx);
+refreshList();
+clearFields();
+JOptionPane.showMessageDialog(this, "Student deleted.");
+}
+
+private void saveToFile() {
+DataManager.save(students);
+JOptionPane.showMessageDialog(this, "Saved to file.");
+}
+
+
+private void loadFromFile() {
+int opt = JOptionPane.showConfirmDialog(this, "This will replace current list with file contents. Continue?", "Load From File", JOptionPane.YES_NO_OPTION);
+if (opt != JOptionPane.YES_OPTION) return;
+students = DataManager.load();
+refreshList();
+clearFields();
+JOptionPane.showMessageDialog(this, "Loaded from file.");
+}
+
+
+private void searchStudents() {
+String q = searchField.getText().trim().toLowerCase();
+if (q.isEmpty()) {
+refreshList();
+return;
+}
+
+listModel.clear();
+for (Student s : students) {
+if (s.getId().toLowerCase().contains(q) || s.getName().toLowerCase().contains(q)) {
+listModel.addElement(s.toString());
+}
+}
+}
+
+
+private void refreshList() {
+listModel.clear();
+for (Student s : students) listModel.addElement(s.toString());
+}
+
+
+private void clearFields() {
+idField.setText("");
+nameField.setText("");
+courseCombo.setSelectedIndex(0);
+searchField.setText("");
+displayList.clearSelection();
+}
+}
+
+
+
+
+5. (LoginGUI.java)
+
+package enrollment;
+
+import javax.swing.*;
+import java.awt.*;
+import java.awt.event.*;
+
+
+public class LoginGUI extends JFrame {
+private JTextField userField;
+private JPasswordField passField;
+private JButton loginBtn;
+
+
+// hardcoded credentials (simple)
+private final String USER = "admin";
+private final String PASS = "admin";
+
+
+public LoginGUI() {
+setTitle("Login - Enrollment System");
+setSize(360, 200);
+setLocationRelativeTo(null);
+setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+setLayout(new BorderLayout(8, 8));
+
+
+JPanel center = new JPanel(new GridLayout(2,2,6,6));
+center.setBorder(BorderFactory.createEmptyBorder(12,12,12,12));
+
+
+center.add(new JLabel("Username:"));
+userField = new JTextField();
+center.add(userField);
+
+
+center.add(new JLabel("Password:"));
+passField = new JPasswordField();
+center.add(passField);
+
+
+add(center, BorderLayout.CENTER);
+
+
+JPanel south = new JPanel(new FlowLayout(FlowLayout.RIGHT));
+loginBtn = new JButton("Login");
+south.add(loginBtn);
+add(south, BorderLayout.SOUTH);
+
+
+
+passField.addActionListener(e -> doLogin());
+loginBtn.addActionListener(e -> doLogin());
+}
+
+
+private void doLogin() {
+String u = userField.getText().trim();
+String p = new String(passField.getPassword());
+
+
+if (u.equals(USER) && p.equals(PASS)) {
+// open main GUI
+SwingUtilities.invokeLater(() -> {
+EnrollmentGUI gui = new EnrollmentGUI();
+gui.setVisible(true);
+});
+dispose();
+} else {
+JOptionPane.showMessageDialog(this, "Invalid credentials", "Login Failed", JOptionPane.ERROR_MESSAGE);
+}
+}
+}
+
+
+
+6. (Main.java)
+
+package enrollment;
+
+import javax.swing.SwingUtilities;
+
+
+public class Main {
+public static void main(String[] args) {
+SwingUtilities.invokeLater(() -> {
+LoginGUI login = new LoginGUI();
+login.setVisible(true);
+});
+}
+}
